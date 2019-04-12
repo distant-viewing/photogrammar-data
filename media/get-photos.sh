@@ -1,3 +1,5 @@
 #!/bin/sh
 
-wget  
+wget http://photogrammar.yale.edu/photos/service/pnp.tar.bz2
+
+  
