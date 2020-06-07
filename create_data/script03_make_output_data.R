@@ -12,6 +12,8 @@ marc <- read_csv(file.path("output", "marc_records.csv.bz2"))
 county <- read_csv(file.path("output", "county_lookup.csv"))
 place <- read_csv(file.path("output", "place_lookup.csv"))
 geonames <- read_csv(file.path("output", "geonames_lookup.csv"))
+state <- read_csv(file.path("static", "state_lookup.csv"))
+vanderbilt <- read_csv(file.path("static", "vanderbilt_lookup.csv"))
 
 stopifnot(nrow(anti_join(place, county, by = c("state_name", "county"))) == 0)
 stopifnot(nrow(anti_join(geonames, county, by = c("state_name", "county"))) == 0)
@@ -84,11 +86,8 @@ output_data$month <- month
 
 ###########################################################################################
 # 4. clean category codes
-table(is.na(output_data$other_letter), is.na(output_data$other_number))
-
-category_number <- sprintf("%s-%s", output_data$other_letter, output_data$other_number)
-category_number[is.na(output_data$other_letter)] <- NA_character_
-category_number[is.na(output_data$other_number)] <- NA_character_
+suppressWarnings({ output_data$other_number <- as.numeric(output_data$other_number) })
+output_data <- left_join(output_data, vanderbilt, by = "other_number")
 
 ###########################################################################################
 # 5. join with geographic data
@@ -157,74 +156,37 @@ output_data$county_use[!is.na(output_data$county_flag)] <- output_data$county[!i
 output_data$county_use[!is.na(output_data$county_use)] <- output_data$county_city[!is.na(output_data$county_use)]
 output_data$county_geonames[!is.na(output_data$county_use)] <- output_data$county_geonames[!is.na(output_data$county_use)]
 
-z <- select(output_data, loc_code, call_num, photographer, caption, country = geo_country, state = geo_state,
-            county = county_use, lon, lat)
+# pick place name
+output_data$place_use <- output_data$geo_city
+index <- which(is.na(output_data$place_use) & is.na(output_data$county_flag))
+output_data$place_use[index] <- output_data$geo_county[index]
 
-write_csv(z, "z.csv")
-q("no")
+# zero out non-US lat/lon
+okay_geo <- (
+  (output_data$geo_country == "United States") &
+  (output_data$geo_state %in% state$state_name)
+)
+output_data$geo_state[!okay_geo] <- NA_character_
+output_data$county_use[!okay_geo] <- NA_character_
+output_data$lon[!okay_geo] <- NA_real_
+output_data$lat[!okay_geo] <- NA_real_
+output_data$place_use[!okay_geo] <- NA_real_
 
+###########################################################################################
+# 6. create output from old dataset (need for correct image URLs)
+photo <- read_csv(file.path("..", "csv-files", "photo_metadata_20190330.csv"), guess = 170000)
+stopifnot(!any(duplicated(photo$loc_item_link)))
+output_data <- output_data[!duplicated(output_data$loc_code),]
 
-library(readr)
-library(dplyr)
-library(ggplot2)
-library(ggmaptile)
+photo_meta <- left_join(
+  select(photo, loc_item_link, call_number, img_large_path, img_medium_path, img_thumb_img),
+  select(output_data, loc_code, photographer,
+         country = geo_country, state = geo_state, county = county, place = place, lon, lat,
+         v1, v2, v3,
+         year, month),
+  by = c("loc_item_link" = "loc_code")
+)
 
-z <- read_csv("z.csv")
-state_lookup <- read_csv(file.path("static", "state_lookup.csv"))
-
-
-z %>%
-  filter(!(state %in% c("Hawaii", "Alaska"))) %>%
-  filter(state %in% state_lookup$state_name) %>%
-  filter(country == "United States") %>%
-  filter(!is.na(lat)) %>%
-  group_by(lon, lat) %>%
-  summarize(n = sqrt(n()) / 3) %>%
-  arrange(desc(n)) %>%
-  ggplot(aes(lon, lat)) +
-    stat_maptiles(alpha = 0.2) +
-    geom_point(aes(size = n), color = "#355e3b", alpha = 0.2) +
-    theme_void() +
-    scale_size_identity()
-
-
-z %>%
-  filter((state %in% c("North Dakota", "Montana", "Wyoming", "South"))) %>%
-  filter(country == "United States") %>%
-  filter(!is.na(lat)) %>%
-  group_by(lon, lat) %>%
-  summarize(n = sqrt(n()) / 1) %>%
-  arrange(desc(n)) %>%
-  ggplot(aes(lon, lat)) +
-    stat_maptiles(alpha = 0.2) +
-    geom_point(aes(size = n), color = "#355e3b", alpha = 0.2) +
-    theme_void() +
-    scale_size_identity()
-
-
-z %>%
-  filter(state %in% c("Puerto Rico", "Virgin Islands of the U.S.")) %>%
-  filter(country == "United States") %>%
-  filter(!is.na(lat)) %>%
-  group_by(lon, lat) %>%
-  summarize(n = sqrt(n()) / 1) %>%
-  arrange(desc(n)) %>%
-  ggplot(aes(lon, lat)) +
-    stat_maptiles(alpha = 0.2) +
-    geom_point(aes(size = n), color = "#355e3b", alpha = 0.4) +
-    theme_void() +
-    scale_size_identity()
-
-z %>%
-  filter(state %in% c("Alaska")) %>%
-  filter(lon > 0) %>%
-  filter(country == "United States") %>%
-  filter(!is.na(lat)) %>%
-  group_by(lon, lat) %>%
-  summarize(n = sqrt(n()) * 4) %>%
-  arrange(desc(n)) %>%
-  ggplot(aes(lon, lat)) +
-    stat_maptiles(alpha = 0.2) +
-    geom_point(aes(size = n), color = "#355e3b", alpha = 0.2) +
-    theme_void() +
-    scale_size_identity()
+###########################################################################################
+# 7. create output
+write_csv(photo_meta, file.path("output", "photo_metadata_20200707.csv"))
