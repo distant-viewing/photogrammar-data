@@ -19,6 +19,19 @@ photo_metadata %>%
     scale_size_identity()
 
 photo_metadata %>%
+  filter(!(state %in% c("Hawaii", "Alaska", "Puerto Rico", "Virgin Islands of the U.S."))) %>%
+  filter(country == "United States") %>%
+  filter(!is.na(lat)) %>%
+  group_by(lon, lat) %>%
+  summarize(n = sqrt(n()) / 3) %>%
+  arrange(desc(n)) %>%
+  ggplot(aes(lon, lat)) +
+    stat_maptiles(alpha = 0.2) +
+    geom_point(aes(size = n), color = "#355e3b", alpha = 0.2) +
+    theme_void() +
+    scale_size_identity()
+
+photo_metadata %>%
   filter((state %in% c("North Dakota", "Montana", "Wyoming", "South"))) %>%
   filter(country == "United States") %>%
   filter(!is.na(lat)) %>%

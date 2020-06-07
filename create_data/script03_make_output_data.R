@@ -78,8 +78,8 @@ year <- if_else(num_years == 1, first_year, NA_character_)
 month <- if_else(num_years == 1, month, NA_character_)
 month[year <= 1934] <- NA_character_
 month[year > 1943] <- NA_character_
-year[year <= 1934] <- NA_character_
-year[year > 1943] <- NA_character_
+year[year < 1935] <- NA_character_
+year[year > 1945] <- NA_character_
 
 output_data$year <- year
 output_data$month <- month
@@ -183,7 +183,8 @@ photo_meta <- left_join(
   select(output_data, loc_code, photographer,
          country = geo_country, state = geo_state, county = county, place = place, lon, lat,
          v1, v2, v3,
-         year, month),
+         year, month,
+         caption),
   by = c("loc_item_link" = "loc_code")
 )
 
