@@ -153,8 +153,8 @@ output_data$lat[is.na(output_data$lat)] <- output_data$lat_geonames[is.na(output
 output_data$lon[is.na(output_data$lon)] <- output_data$lon_geonames[is.na(output_data$lon)]
 output_data$county_use <- NA_character_
 output_data$county_use[!is.na(output_data$county_flag)] <- output_data$county[!is.na(output_data$county_flag)]
-output_data$county_use[!is.na(output_data$county_use)] <- output_data$county_city[!is.na(output_data$county_use)]
-output_data$county_geonames[!is.na(output_data$county_use)] <- output_data$county_geonames[!is.na(output_data$county_use)]
+output_data$county_use[is.na(output_data$county_use)] <- output_data$county_city[is.na(output_data$county_use)]
+output_data$county_use[is.na(output_data$county_use)] <- output_data$county_geonames[is.na(output_data$county_use)]
 
 # pick place name
 output_data$place_use <- output_data$geo_city
@@ -181,7 +181,7 @@ output_data <- output_data[!duplicated(output_data$loc_code),]
 photo_meta <- left_join(
   select(photo, loc_item_link, call_number, img_large_path, img_medium_path, img_thumb_img),
   select(output_data, loc_code, photographer,
-         country = geo_country, state = geo_state, county = county, place = place, lon, lat,
+         country = geo_country, state = geo_state, county = county_use, place = place, lon, lat,
          v1, v2, v3,
          year, month,
          caption),

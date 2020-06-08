@@ -3,6 +3,7 @@ library(jsonlite)
 library(dplyr)
 library(readr)
 library(stringi)
+library(geojsonsf)
 
 source("funs.R")
 
