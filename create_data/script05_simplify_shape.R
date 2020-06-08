@@ -75,7 +75,9 @@ write_lines(geo_json, file.path("output", "county_filter.json"))
 ###########################################################################################
 # 6. add nhgis_join
 photo_meta <- left_join(
-  photo_meta, shp_simple, by = c("state" = "state_terr", "county" = "name")
+  photo_meta,
+  select(as_tibble(shp_county), state_name_cnt, county, nhgis_join),
+   by = c("state" = "state_name_cnt", "county" = "county")
 )
 
 write_csv(photo_meta, file.path("output", "photo_metadata_20200707.csv"))

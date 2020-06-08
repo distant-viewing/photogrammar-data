@@ -19,8 +19,11 @@ shp_county <- st_read(file.path(
 ))
 shp_county <- select(shp_county, state_name = STATENAM, county = NHGISNAM, nhgis_join = GISJOIN)
 shp_county$state_name <- as.character(shp_county$state_name)
+shp_county$nhgis_join <- as.character(shp_county$nhgis_join)
 shp_county$state_name <- stri_replace_all(shp_county$state_name, "", fixed = " Territory")
 shp_county$county <- as.character(shp_county$county)
+
+#G7200330
 
 ##########################################################################################
 # 3. load modern county shape files from Census Bureau, project, and join to the shp_county
@@ -30,6 +33,9 @@ shp_county_cur <- filter(shp_county_cur, STATEFP %in% c("72", "78"))
 shp_county_cur$state_name <- "Puerto Rico"
 shp_county_cur$state_name[shp_county_cur$STATEFP == "78"] <- "Virgin Islands of the U.S."
 shp_county_cur$county <- shp_county_cur$NAME
+shp_county_cur$nhgis_join <- sprintf(
+  "G%s00%s", as.character(shp_county_cur$STATEFP), as.character(shp_county_cur$COUNTYFP)
+)
 shp_county_cur <- select(shp_county_cur, state_name, county)
 
 shp_county_cur <- st_transform(shp_county_cur, st_crs(shp_county))
