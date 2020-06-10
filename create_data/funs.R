@@ -31,12 +31,12 @@ clean_non_48 <- function(output_data)
 
   # virgin islands
   these_vi <- which(output_data$geo_country == "Virgin Islands of the United States")
-  output_data$geo_county[these_vi] <- sprintf("%s County", output_data$geo_county[these_vi])
   output_data$geo_state[these_vi] <- "Virgin Islands of the U.S."
   output_data$geo_country[these_vi] <- "United States"
-  output_data$geo_county[output_data$geo_county == "Saint Thomas Island County"] <- "Saint Thomas County"
-  output_data$geo_county[output_data$geo_county == "Saint Croix Island County"] <- "Saint Croix County"
-  output_data$geo_county[output_data$geo_county == "Saint John Island County"] <- "Saint John County"
+  output_data$geo_county[output_data$geo_county == "Saint Croix Island"] <- "St. Croix"
+  output_data$geo_county[output_data$geo_county == "Saint John Island"] <- "St. John"
+  output_data$geo_county[output_data$geo_county == "Saint Thomas"] <- "St. Thomas"
+  output_data$geo_county[output_data$geo_county == "Saint Thomas Island"] <- "St. Thomas"
 
   # Washington D.C.
   these_dc <- which((output_data$geo_country == "Washington (D.C.)") |

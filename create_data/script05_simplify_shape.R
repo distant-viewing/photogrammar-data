@@ -82,8 +82,6 @@ photo_meta <- left_join(
 
 write_csv(photo_meta, file.path("output", "photo_metadata_20200707.csv"))
 
-
-
 ##########################################################################################
 # 6. try to do projection
 

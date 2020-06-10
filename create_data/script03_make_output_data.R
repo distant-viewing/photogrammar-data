@@ -105,6 +105,7 @@ output_data$county[is.na(output_data$geo_state)] <- NA
 output_data$county[is.na(output_data$geo_county)] <- NA
 output_data$county <- stri_replace_all(output_data$county, "", fixed = " County")
 output_data$county <- stri_replace_all(output_data$county, "", fixed = " Parish")
+output_data$county <- stri_replace_all(output_data$county, "", fixed = " Municipio")
 output_data$county <- stri_trim(output_data$county)
 output_data$county <- stri_trans_totitle(output_data$county)
 output_data <- left_join(
