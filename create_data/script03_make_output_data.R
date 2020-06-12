@@ -180,7 +180,8 @@ stopifnot(!any(duplicated(photo$loc_item_link)))
 output_data <- output_data[!duplicated(output_data$loc_code),]
 
 photo_meta <- left_join(
-  select(photo, loc_item_link, call_number, img_large_path, img_medium_path, img_thumb_img),
+  select(photo, loc_item_link, call_number, photograph_type,
+         img_large_path, img_medium_path, img_thumb_img),
   select(output_data, loc_code, photographer,
          country = geo_country, state = geo_state, county = county_use,
          place = place_use, lon, lat,

@@ -34,9 +34,9 @@ shp_county_cur$state_name <- "Puerto Rico"
 shp_county_cur$state_name[shp_county_cur$STATEFP == "78"] <- "Virgin Islands of the U.S."
 shp_county_cur$county <- shp_county_cur$NAME
 shp_county_cur$nhgis_join <- sprintf(
-  "G%s00%s", as.character(shp_county_cur$STATEFP), as.character(shp_county_cur$COUNTYFP)
+  "G%s0%s0", as.character(shp_county_cur$STATEFP), as.character(shp_county_cur$COUNTYFP)
 )
-shp_county_cur <- select(shp_county_cur, state_name, county)
+shp_county_cur <- select(shp_county_cur, state_name, county, nhgis_join)
 
 shp_county_cur <- st_transform(shp_county_cur, st_crs(shp_county))
 shp_county <- rbind(shp_county, shp_county_cur)
