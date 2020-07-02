@@ -4,6 +4,7 @@ library(xml2)
 library(stringi)
 library(tidyr)
 
+# Download all of the index files (there are 20 links on each page)
 for (i in seq_len(8768))
 {
   url <- sprintf("https://www.loc.gov/pictures/search/?sp=%d&co=fsa", i)
@@ -15,6 +16,7 @@ for (i in seq_len(8768))
   }
 }
 
+# create a file "ids.txt" that contains a link to every record in the FSA-OWI collection
 if (!file.exists(id_path <- "ids.txt"))
 {
   href_list <- c()
@@ -28,16 +30,17 @@ if (!file.exists(id_path <- "ids.txt"))
     i_list <- c(i_list, rep(i, length(href)))
   }
 
-  table(table(i_list)) # all 20, except the last one
+  table(table(i_list)) # should all be 20, except the last one
   all(!duplicated(href_list))
   ids <- stri_extract(href_list, regex = "[0-9]+")
   write_lines(ids, id_path)
 }
 
+# read in the links and grab each page (there are around 176k), saving a copy locally
 ids <- read_lines(id_path)
-
+ids <- ids[ids != "NA"]
 for (i in seq_along(ids))
-{
+try({
   fout <- file.path("web", sprintf("%s.html", ids[i]))
   if (!file.exists(fout))
   {
@@ -46,42 +49,46 @@ for (i in seq_along(ids))
     system("sleep 0.2")
     print(sprintf("Done with %d of %d", i, length(ids)))
   }
-}
+})
 
-ret_val <- function(v) if_else(length(v) >= 1, v[1], NA_character_)
-
-data <- tibble(id = ids, loc = "", call_num = "", a = "", b = "", c = "", d = "")
+# some pages had not completely downloaded
+bad_id <- c()
 for (i in seq_along(ids))
 {
-  fout <- file.path("web", sprintf("%s.html", ids[i]))
-  x <- read_html(fout)
-
-  tr <- xml_text(xml_find_all(x, ".//table/tr/td"))
-  mat <- matrix(tr, byrow=TRUE, ncol = 5)
-  df <- tibble(tag = mat[,1], i1 = mat[,2], i2 = mat[,3], code = mat[,4], text = mat[,5])
-  df$tag[df$tag == ""] <- NA
-  df <- fill(df, tag)
-
-  data$loc[i] <- ret_val(filter(df, tag == "035", code == "a")$text)
-  data$call_num[i] <- ret_val(filter(df, tag == "037", code == "a")$text)
-  data$a[i] <- ret_val(filter(df, tag == "752", code == "a")$text)
-  data$b[i] <- ret_val(filter(df, tag == "752", code == "b")$text)
-  data$c[i] <- ret_val(filter(df, tag == "752", code == "c")$text)
-  data$d[i] <- ret_val(filter(df, tag == "752", code == "d")$text)
+  x <- read_lines(file.path("web", sprintf("%s.html", ids[i])))
+  if (x[length(x)] != "</html>") {
+    # record bad id and redownload
+    bad_id <- c(bad_id, i)
+    url <- sprintf("https://www.loc.gov/pictures/item/%s/marc/", ids[i])
+    fout <- file.path("web", sprintf("%s.html", ids[i]))
+    download.file(url, fout)
+  }
 }
 
-data$loc <- stri_trim(stri_replace_all(data$loc, "", regex = "\\.$"))
-data$call_num <- stri_trim(stri_replace_all(data$call_num, "", regex = "\\.$"))
-data$a <- stri_replace_all(stri_trim(data$a), "", regex = "\\.$")
-data$b <- stri_replace_all(stri_trim(data$b), "", regex = "\\.$")
-data$c <- stri_replace_all(stri_trim(data$c), "", regex = "\\.$")
-data$d <- stri_replace_all(stri_trim(data$d), "", regex = "\\.$")
+# grab the marc records and create one large data set
+df_list <- vector("list", length(ids))
+for (i in seq_along(ids))
+{
+  x <- read_html(file.path("web", sprintf("%s.html", ids[i])))
+  tr <- xml_text(xml_find_all(x, ".//table/tr/td"))
+  if((length(tr) %% 5) != 0) { print(i) }
+  mat <- matrix(tr, byrow=TRUE, ncol = 5)
+  df <- tibble(
+    id = ids[i], tag = mat[,1], i1 = mat[,2], i2 = mat[,3], code = mat[,4], text = mat[,5]
+  )
+  df$tag <- stri_trim(df$tag)
+  df$i1 <- stri_trim(df$i1)
+  df$i2 <- stri_trim(df$i2)
+  df$code <- stri_trim(df$code)
+  df$text <- stri_trim(df$text)
 
-data <- data[!is.na(data$a),]
-data <- data[data$a == "Puerto Rico",]
+  df$tag[df$tag == ""] <- NA
+  df$i1[df$i1 == ""] <- NA
+  df$i2[df$i2 == ""] <- NA
+  df_list[[i]] <- fill(df, tag)
 
-data$loc <- stri_sub(data$loc, 6, -1)
-index <- match(data$loc, x$loc_item_link)
-data <- data[!is.na(index),]
+  if ((i %% 100) == 0) print(sprintf("Done with %i", i))
+}
 
-write_csv(data, "puerto_rico_photos.csv")
+df_list <- bind_rows(df_list)
+write_csv(df_list, file.path("output", "marc_records.csv.bz2"))
