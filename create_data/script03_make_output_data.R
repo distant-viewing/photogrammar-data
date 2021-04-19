@@ -14,14 +14,25 @@ place <- read_csv(file.path("output", "place_lookup.csv"))
 geonames <- read_csv(file.path("output", "geonames_lookup.csv"))
 state <- read_csv(file.path("static", "state_lookup.csv"))
 vanderbilt <- read_csv(file.path("static", "vanderbilt_lookup.csv"))
+photo <- read_csv(
+  file.path("..", "csv-files", "photo_metadata_20190330.csv"), guess = 170000
+)
 
 stopifnot(nrow(anti_join(place, county, by = c("state_name", "county"))) == 0)
 stopifnot(nrow(anti_join(geonames, county, by = c("state_name", "county"))) == 0)
 
 ###########################################################################################
+# 1a. fix loc codes (some are duplicates) 2021-04-19
+lc_data <- filter(marc, tag == "035", code == "a")
+lc_data$text <- stri_sub(lc_data$text, 6, -1)
+lc_data <- semi_join(lc_data, photo, by = c("text" = "loc_item_link"))
+lc_data <- select(lc_data, id, loc_code = text)
+lc_data <- lc_data[!duplicated(lc_data$id),]
+lc_data <- left_join(tibble(id = unique(marc$id)), lc_data, by = "id")
+
+###########################################################################################
 # 2. create output dataset
-output_data <- tibble(id = unique(marc$id))
-output_data$loc_code <- stri_sub(filter_first_na(filter(marc, tag == "035", code == "a")), 6, -1)
+output_data <- lc_data
 output_data$call_num <- filter_first_na(filter(marc, tag == "037", code == "a"))
 output_data$photographer <- filter_first_na(filter(marc, tag == "100", i1 == 1, code == "a"))
 output_data$caption <- filter_first_na(filter(marc, tag == "245", i1 == 1, code == "a"))
@@ -175,7 +186,6 @@ output_data$place_use[!okay_geo] <- NA_real_
 
 ###########################################################################################
 # 6. create output from old dataset (need for correct image URLs)
-photo <- read_csv(file.path("..", "csv-files", "photo_metadata_20190330.csv"), guess = 170000)
 stopifnot(!any(duplicated(photo$loc_item_link)))
 output_data <- output_data[!duplicated(output_data$loc_code),]
 
@@ -193,4 +203,4 @@ photo_meta <- left_join(
 
 ###########################################################################################
 # 7. create output
-write_csv(photo_meta, file.path("output", "photo_metadata_20200707.csv"))
+write_csv(photo_meta, file.path("output", "photo_metadata_20210419.csv"))

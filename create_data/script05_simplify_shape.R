@@ -10,7 +10,8 @@ source("funs.R")
 
 ##########################################################################################
 # 1. load photo metadata and simplified geojson file
-photo_meta <- read_csv(file.path("output", "photo_metadata_20200707.csv"), guess = 170000)
+#photo_meta <- read_csv(file.path("output", "photo_metadata_20200707.csv"), guess = 170000)
+photo_meta <- read_csv(file.path("output", "photo_metadata_20210419.csv"), guess = 170000)
 
 ##########################################################################################
 # 2. load historic county shape files from NHGIS
@@ -80,7 +81,9 @@ photo_meta <- left_join(
    by = c("state" = "state_name_cnt", "county" = "county")
 )
 
-write_csv(photo_meta, file.path("output", "photo_metadata_20200707.csv"))
+#write_csv(photo_meta, file.path("output", "photo_metadata_20200707.csv"))
+write_csv(photo_meta, file.path("output", "photo_metadata_20210419.csv"))
+
 
 ##########################################################################################
 # 6. try to do projection
