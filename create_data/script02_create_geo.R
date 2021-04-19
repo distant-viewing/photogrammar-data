@@ -15,7 +15,7 @@ state_lookup <- filter(state_lookup, !is.na(alpha))
 ##########################################################################################
 # 2. load historic county shape files from NHGIS
 shp_county <- st_read(file.path(
-  "static", "nhgis0006_shapefile_tl2008_us_county_1940", "US_county_1940_conflated.shp"
+  "static", "nhgis0008_shapefile_tl2008_us_county_1940", "US_county_1940_conflated.shp"
 ))
 shp_county <- select(shp_county, state_name = STATENAM, county = NHGISNAM, nhgis_join = GISJOIN)
 shp_county$state_name <- as.character(shp_county$state_name)
